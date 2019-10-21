@@ -17,10 +17,14 @@ import (
 func (s *ConfigSyncer) SyncSecret(src *core.Secret) error {
 	opts := GetSyncOptions(src.Annotations)
 
-	if opts.NamespaceSelector != nil { // delete that were in old-ns but not in new-ns and upsert to new-ns
-		newNs, err := NamespacesForSelector(s.kubeClient, *opts.NamespaceSelector)
-		if err != nil {
-			return err
+	if opts.NamespaceSelector != nil || opts.Namespaces.Len() > 0 { // delete that were in old-ns but not in new-ns and upsert to new-ns
+		newNs := opts.Namespaces
+		if opts.NamespaceSelector != nil {
+			namespaces, err := NamespacesForSelector(s.kubeClient, *opts.NamespaceSelector)
+			if err != nil {
+				return err
+			}
+			newNs = newNs.Union(namespaces)
 		}
 		glog.Infof("secret %s/%s will be synced into namespaces %v if needed", src.Namespace, src.Name, newNs.List())
 		if err := s.syncSecretIntoNamespaces(s.kubeClient, src, newNs, true, ""); err != nil {

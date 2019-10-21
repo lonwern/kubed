@@ -14,6 +14,7 @@ import (
 
 type SyncOptions struct {
 	NamespaceSelector *string // if nil, delete from cluster
+	Namespaces        sets.String
 	Contexts          sets.String
 }
 
@@ -25,6 +26,9 @@ func GetSyncOptions(annotations map[string]string) SyncOptions {
 		} else {
 			opts.NamespaceSelector = &v
 		}
+	}
+	if namespaces, _ := meta.GetStringValue(annotations, api.ConfigSyncNamespaces); namespaces != "" {
+		opts.Namespaces = sets.NewString(strings.Split(namespaces, ",")...)
 	}
 	if contexts, _ := meta.GetStringValue(annotations, api.ConfigSyncContexts); contexts != "" {
 		opts.Contexts = sets.NewString(strings.Split(contexts, ",")...)

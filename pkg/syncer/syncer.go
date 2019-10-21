@@ -140,9 +140,12 @@ func (s *ConfigSyncer) syncerAnnotations(oldAnnotations, srcAnnotations map[stri
 	if v, ok := oldAnnotations[api.ConfigSyncContexts]; ok {
 		newAnnotations[api.ConfigSyncContexts] = v
 	}
+	if v, ok := oldAnnotations[api.ConfigSyncNamespaces]; ok {
+		newAnnotations[api.ConfigSyncNamespaces] = v
+	}
 
 	for k, v := range srcAnnotations {
-		if k != api.ConfigSyncKey && k != api.ConfigSyncContexts {
+		if k != api.ConfigSyncKey && k != api.ConfigSyncContexts && k != api.ConfigSyncNamespaces {
 			newAnnotations[k] = v
 		}
 	}
