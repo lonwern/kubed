@@ -55,10 +55,9 @@ func (s *ConfigSyncer) syncSecretIntoContexts(src *core.Secret, contexts sets.St
 		if !found {
 			return errors.Errorf("context %s not found in kubeconfig file", ctx)
 		}
-		if _, found = taken[context.Address]; found {
-			return errors.Errorf("multiple contexts poniting same cluster")
+		if _, found = taken[context.Address]; !found {
+			taken[context.Address] = struct{}{}
 		}
-		taken[context.Address] = struct{}{}
 	}
 
 	// sync to contexts specified via annotation, do not ignore errors here
