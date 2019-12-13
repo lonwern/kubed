@@ -48,27 +48,33 @@ func (s *ConfigSyncer) SyncDeletedSecret(src *core.Secret) error {
 }
 
 func (s *ConfigSyncer) syncSecretIntoContexts(src *core.Secret, contexts sets.String) error {
+	clusters := map[string]sets.String{}
 	// validate contexts specified via annotation
-	taken := map[string]struct{}{}
 	for _, ctx := range contexts.List() {
 		context, found := s.contexts[ctx]
 		if !found {
 			return errors.Errorf("context %s not found in kubeconfig file", ctx)
 		}
-		if _, found = taken[context.Address]; !found {
-			taken[context.Address] = struct{}{}
+		if _, found = clusters[context.Address]; !found {
+			clusters[context.Address] = sets.NewString()
 		}
+		namespace := context.Namespace
+		if namespace == "" { // use source namespace if not specified via context
+			namespace = src.Namespace
+		}
+		clusters[context.Address].Insert(namespace)
 	}
 
+	taken := map[string]struct{}{}
 	// sync to contexts specified via annotation, do not ignore errors here
 	for _, ctx := range contexts.List() {
 		context, _ := s.contexts[ctx]
-		if context.Namespace == "" { // use source namespace if not specified via context
-			context.Namespace = src.Namespace
-		}
-		err := s.syncSecretIntoNamespaces(context.Client, src, sets.NewString(context.Namespace), false, ctx)
-		if err != nil {
-			return err
+		if _, found := taken[context.Address]; !found {
+			err := s.syncSecretIntoNamespaces(context.Client, src, clusters[context.Address], false, ctx)
+			if err != nil {
+				return err
+			}
+			taken[context.Address] = struct{}{} // to avoid syncing form same cluster twice
 		}
 	}
 
